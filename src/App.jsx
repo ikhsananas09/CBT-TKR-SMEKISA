@@ -87,7 +87,7 @@ export default function App() {
           option_d: cols[5], 
           option_e: cols[6], 
           answer_key: cols[7]?.trim().toUpperCase(),
-          image: cols[8]?.trim() || '' // Opsional kolom ke-9 untuk link gambar
+          image: cols[8]?.trim() || '' 
         });
         count++;
       }
@@ -122,7 +122,7 @@ export default function App() {
 
     // Logika Paket Acak/Tetap
     if (examConfig.isRandom) {
-      allQ = allQ.sort(() => 0.5 - Math.random()); // Acak soal
+      allQ = allQ.sort(() => 0.5 - Math.random()); 
     }
     
     // Batasi jumlah soal sesuai pengaturan guru
@@ -222,4 +222,197 @@ export default function App() {
 
           {/* Panel Import Soal */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-bold mb-4 text-blue
+            <h3 className="text-xl font-bold mb-4 text-blue-600">Import Soal dari Excel</h3>
+            <p className="text-sm text-gray-500 mb-2">Copy tabel (Kolom: No, Soal, A, B, C, D, E, Kunci, Link Gambar Opsional):</p>
+            <textarea value={rawExcel} onChange={(e) => setRawExcel(e.target.value)} className="w-full border p-2 rounded h-32 mb-4 text-sm" placeholder="Paste data Excel di sini..."></textarea>
+            <button onClick={handleImport} className="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700">Import ke Database</button>
+            <p className="mt-4 text-gray-700">Total Bank Soal Tersimpan: <b>{questions.length}</b></p>
+          </div>
+        </div>
+
+        {/* Panel Rekap Nilai */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-blue-600">Rekap Nilai Siswa</h3>
+            <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded font-bold text-sm hover:bg-green-700">Export Excel / CSV</button>
+          </div>
+          
+          <div className="flex gap-4 mb-4">
+            <input type="text" placeholder="Cari Nama Siswa..." value={searchName} onChange={e => setSearchName(e.target.value)} className="border p-2 rounded flex-1" />
+            <select value={filterClass} onChange={e => setFilterClass(e.target.value)} className="border p-2 rounded">
+              <option value="">Semua Kelas</option>
+              <option value="XI TKR A">XI TKR A</option>
+              <option value="XI TKR B">XI TKR B</option>
+              <option value="XI TKR C">XI TKR C</option>
+            </select>
+          </div>
+
+          <div className="overflow-auto max-h-96">
+            <table className="w-full text-left border-collapse text-sm md:text-base">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border p-2">Nama</th>
+                  <th className="border p-2">Kelas</th>
+                  <th className="border p-2">Benar</th>
+                  <th className="border p-2">Salah</th>
+                  <th className="border p-2">Nilai Akhir</th>
+                  <th className="border p-2">Tanggal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredResults.map((r, idx) => (
+                  <tr key={idx} className="border-b hover:bg-gray-50">
+                    <td className="border p-2">{r.name}</td>
+                    <td className="border p-2">{r.class}</td>
+                    <td className="border p-2 text-green-600 font-bold">{r.correct}</td>
+                    <td className="border p-2 text-red-500 font-bold">{r.wrong}</td>
+                    <td className="border p-2 font-black text-blue-600">{r.score}</td>
+                    <td className="border p-2 text-gray-500">{r.date}</td>
+                  </tr>
+                ))}
+                {filteredResults.length === 0 && (
+                  <tr><td colSpan="6" className="text-center p-4 text-gray-500">Belum ada data ujian.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (view === 'student_login') return (
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+      <form onSubmit={startExam} className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-2 text-center text-blue-600">{examConfig.title}</h2>
+        <p className="text-center text-gray-500 mb-6">{examConfig.subject} - Durasi: {examConfig.duration} Menit</p>
+        
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold mb-2">Nama Lengkap</label>
+          <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full border p-3 rounded focus:border-blue-500 outline-none" required />
+        </div>
+        <div className="mb-6">
+          <label className="block text-gray-700 font-bold mb-2">Pilih Kelas</label>
+          <select value={studentClass} onChange={(e) => setStudentClass(e.target.value)} className="w-full border p-3 rounded focus:border-blue-500 outline-none">
+            <option value="XI TKR A">XI TKR A</option>
+            <option value="XI TKR B">XI TKR B</option>
+            <option value="XI TKR C">XI TKR C</option>
+          </select>
+        </div>
+        <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded font-bold hover:bg-blue-700">Mulai Ujian</button>
+        <button type="button" onClick={() => setView('home')} className="w-full mt-3 text-gray-500 underline text-sm">Kembali ke Beranda</button>
+      </form>
+    </div>
+  );
+
+  if (view === 'exam') {
+    const q = activeQuestions[currentQ];
+    return (
+      <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-6">
+          
+          {/* Bagian Kiri: Area Soal */}
+          <div className="flex-1">
+            <div className="bg-white p-4 rounded shadow flex justify-between items-center mb-4">
+              <div>
+                <p className="font-bold text-gray-800">{studentName}</p>
+                <p className="text-sm text-gray-500">{studentClass}</p>
+              </div>
+              <div className="text-2xl font-black text-red-600 border-2 border-red-200 bg-red-50 px-4 py-1 rounded">
+                {Math.floor(timeLeft / 60)}:{('0' + (timeLeft % 60)).slice(-2)}
+              </div>
+            </div>
+
+            {q ? (
+              <div className="bg-white p-6 rounded shadow mb-4">
+                <h3 className="text-lg font-bold mb-4 border-b pb-2">Soal No. {currentQ + 1}</h3>
+                
+                {/* Fitur Soal Bergambar */}
+                {q.image && (
+                  <img src={q.image} alt="Soal" className="mb-4 max-h-64 object-contain mx-auto rounded border" />
+                )}
+                
+                <p className="text-gray-800 text-lg mb-6 whitespace-pre-line">{q.question}</p>
+                
+                <div className="space-y-3">
+                  {['a', 'b', 'c', 'd', 'e'].map((opt) => (
+                    <button 
+                      key={opt}
+                      onClick={() => setAnswers({...answers, [currentQ]: opt.toUpperCase()})}
+                      className={`w-full text-left p-3 border rounded transition-colors ${answers[currentQ] === opt.toUpperCase() ? 'bg-blue-100 border-blue-500 font-semibold' : 'hover:bg-gray-50'}`}
+                    >
+                      <span className="font-bold uppercase mr-3">{opt}.</span> {q[`option_${opt}`]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white p-6 rounded shadow mb-4 text-center">Menyiapkan soal...</div>
+            )}
+
+            {/* Navigasi Bawah */}
+            <div className="flex justify-between mt-4">
+              <button disabled={currentQ === 0} onClick={() => setCurrentQ(currentQ - 1)} className="px-6 py-2 bg-gray-500 text-white rounded disabled:opacity-50">Sebelumnya</button>
+              {currentQ === activeQuestions.length - 1 ? (
+                <button onClick={() => { if(window.confirm('Yakin ingin mengumpulkan ujian?')) submitExam(); }} className="px-6 py-2 bg-green-600 text-white rounded font-bold shadow hover:bg-green-700">Selesai & Kumpulkan</button>
+              ) : (
+                <button onClick={() => setCurrentQ(currentQ + 1)} className="px-6 py-2 bg-blue-600 text-white rounded font-bold shadow hover:bg-blue-700">Selanjutnya</button>
+              )}
+            </div>
+          </div>
+
+          {/* Bagian Kanan: Indikator Nomor Soal */}
+          <div className="w-full md:w-64 bg-white p-4 rounded shadow h-fit">
+            <h4 className="font-bold text-gray-700 mb-4 text-center border-b pb-2">Navigasi Soal</h4>
+            <div className="grid grid-cols-5 md:grid-cols-4 gap-2">
+              {activeQuestions.map((_, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setCurrentQ(i)}
+                  className={`w-10 h-10 rounded font-bold flex items-center justify-center border transition-all ${
+                    currentQ === i ? 'ring-2 ring-blue-500 ring-offset-1 ' : ''
+                  }${
+                    answers[i] ? 'bg-green-500 text-white border-green-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 text-sm text-gray-500 space-y-2">
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-green-500 rounded"></div> Sudah Dijawab</div>
+              <div className="flex items-center gap-2"><div className="w-4 h-4 bg-gray-100 border rounded"></div> Belum Dijawab</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'result') return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
+        <h2 className="text-3xl font-bold text-blue-600 mb-2">Ujian Selesai!</h2>
+        <p className="text-gray-600 mb-6">{scoreData.name} - {scoreData.class}</p>
+        
+        <div className="text-7xl font-black text-gray-800 mb-6">{scoreData.score}</div>
+        
+        <div className="flex justify-around mb-8 border-t border-b py-4">
+          <div>
+            <p className="text-sm text-gray-500">Jawaban Benar</p>
+            <p className="text-2xl font-bold text-green-500">{scoreData.correct}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Jawaban Salah</p>
+            <p className="text-2xl font-bold text-red-500">{scoreData.wrong}</p>
+          </div>
+        </div>
+        
+        <button onClick={() => setView('home')} className="w-full bg-blue-600 text-white p-3 rounded font-bold shadow hover:bg-blue-700">Kembali ke Awal</button>
+      </div>
+    </div>
+  );
+
+  return null;
+}
